@@ -1,0 +1,29 @@
+{
+  "name": "fall2026-codingchallenge",
+  "version": "1.0.0",
+  "description": "***Due 9/18 at 11:59 PM (CT)***.  Remember to submit [this form](https://forms.gle/JfR4cwAEwn4HhBuX8) when complete.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/angela269240/Fall2026-CodingChallenge.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/angela269240/Fall2026-CodingChallenge/issues"
+  },
+  "homepage": "https://github.com/angela269240/Fall2026-CodingChallenge#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

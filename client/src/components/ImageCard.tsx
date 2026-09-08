@@ -2,9 +2,10 @@ import type { PixabayImage } from '../services/pixabay'
 
 type ImageCardProps = {
   image: PixabayImage
+  onSave: (image: PixabayImage) => void
 }
 
-function ImageCard({ image }: ImageCardProps) {
+function ImageCard({image,onSave}: ImageCardProps) {
   return (
     <article className="image-card">
       <img
@@ -16,7 +17,7 @@ function ImageCard({ image }: ImageCardProps) {
         <p>{image.tags}</p>
         <span>by {image.user}</span>
 
-        <button>Save</button>
+        <button onClick={() => onSave(image)}>Save</button>
       </div>
     </article>
   )
