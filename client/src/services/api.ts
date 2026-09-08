@@ -1,7 +1,8 @@
 const API_URL = 'http://localhost:3000/api'
 
 export type SavedImage = {
-  id: number
+  _id: string
+  pixabayId: number
   imageUrl: string
   largeImageUrl: string
   tags: string
@@ -9,16 +10,20 @@ export type SavedImage = {
 }
 
 export type Collection = {
-  id: number
+  _id: string
   name: string
   images: SavedImage[]
 }
 
 export async function getCollections(): Promise<Collection[]> {
-  const response = await fetch(`${API_URL}/collections`)
+  const response = await fetch(
+    `${API_URL}/collections`
+  )
 
   if (!response.ok) {
-    throw new Error('Failed to load collections')
+    throw new Error(
+      'Failed to load collections'
+    )
   }
 
   return response.json()
@@ -27,25 +32,30 @@ export async function getCollections(): Promise<Collection[]> {
 export async function createCollection(
   name: string
 ): Promise<Collection> {
-  const response = await fetch(`${API_URL}/collections`, {
-    method: 'POST',
+  const response = await fetch(
+    `${API_URL}/collections`,
+    {
+      method: 'POST',
 
-    headers: {
-      'Content-Type': 'application/json'
-    },
+      headers: {
+        'Content-Type': 'application/json'
+      },
 
-    body: JSON.stringify({ name })
-  })
+      body: JSON.stringify({ name })
+    }
+  )
 
   if (!response.ok) {
-    throw new Error('Failed to create collection')
+    throw new Error(
+      'Failed to create collection'
+    )
   }
 
   return response.json()
 }
 
 export async function saveImageToCollection(
-  collectionId: number,
+  collectionId: string,
   image: {
     pixabayId: number
     imageUrl: string
@@ -68,15 +78,17 @@ export async function saveImageToCollection(
   )
 
   if (!response.ok) {
-    throw new Error('Failed to save image')
+    throw new Error(
+      'Failed to save image'
+    )
   }
 
   return response.json()
 }
 
 export async function updateSavedImage(
-  collectionId: number,
-  imageId: number,
+  collectionId: string,
+  imageId: string,
   tags: string
 ): Promise<SavedImage> {
   const response = await fetch(
@@ -93,15 +105,17 @@ export async function updateSavedImage(
   )
 
   if (!response.ok) {
-    throw new Error('Failed to update image')
+    throw new Error(
+      'Failed to update image'
+    )
   }
 
   return response.json()
 }
 
 export async function deleteSavedImage(
-  collectionId: number,
-  imageId: number
+  collectionId: string,
+  imageId: string
 ): Promise<void> {
   const response = await fetch(
     `${API_URL}/collections/${collectionId}/images/${imageId}`,
@@ -111,6 +125,8 @@ export async function deleteSavedImage(
   )
 
   if (!response.ok) {
-    throw new Error('Failed to delete image')
+    throw new Error(
+      'Failed to delete image'
+    )
   }
 }

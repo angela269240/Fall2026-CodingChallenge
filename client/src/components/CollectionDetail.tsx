@@ -11,15 +11,15 @@ type CollectionDetailProps = {
   onBack: () => void
 
   onDeleteImage: (
-    collectionId: number,
-    imageId: number
+    collectionId: string,
+    imageId: string
   ) => void
 
   onUpdateImage: (
-    collectionId: number,
-    imageId: number,
+    collectionId: string,
+    imageId: string,
     tags: string
-  ) => void
+  ) => Promise<void>
 }
 
 function CollectionDetail({
@@ -38,20 +38,20 @@ function CollectionDetail({
     setEditText(image.tags)
   }
 
-  const saveEdit = () => {
-    if (!editingImage || !editText.trim()) {
-      return
-    }
-
-    onUpdateImage(
-      collection.id,
-      editingImage.id,
-      editText
-    )
-
-    setEditingImage(null)
-    setEditText('')
+  const saveEdit = async () => {
+  if (!editingImage || !editText.trim()) {
+    return
   }
+
+  await onUpdateImage(
+    collection._id,
+    editingImage._id,
+    editText
+  )
+
+  setEditingImage(null)
+  setEditText('')
+}
 
   return (
     <section className="collection-detail">
@@ -81,7 +81,7 @@ function CollectionDetail({
           {collection.images.map((image) => (
             <article
               className="saved-image-card"
-              key={image.id}
+              key={image._id}
             >
               <img
                 src={image.imageUrl}
@@ -89,7 +89,7 @@ function CollectionDetail({
               />
 
               <div className="saved-image-info">
-                {editingImage?.id === image.id ? (
+                {editingImage?._id === image._id ? (
                   <>
                     <input
                       value={editText}
@@ -130,8 +130,8 @@ function CollectionDetail({
                       <button
                         onClick={() =>
                           onDeleteImage(
-                            collection.id,
-                            image.id
+                            collection._id,
+                            image._id
                           )
                         }
                       >

@@ -22,14 +22,14 @@ import {
 } from './services/api'
 
 function App() {
-  // Images returned from Pixabay
+  // Images returned by Pixabay
   const [images, setImages] = useState<PixabayImage[]>([])
 
-  // Pixabay search state
+  // Search state
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Collections returned from our Express backend
+  // Collections loaded from MongoDB through our Express API
   const [collections, setCollections] =
     useState<Collection[]>([])
 
@@ -37,16 +37,17 @@ function App() {
   const [selectedImage, setSelectedImage] =
     useState<PixabayImage | null>(null)
 
-  // ID of the collection the user is currently viewing
+  // MongoDB _id of the collection currently being viewed
   const [activeCollectionId, setActiveCollectionId] =
-    useState<number | null>(null)
+    useState<string | null>(null)
 
-  // Find the full collection using its ID
+  // Find the active collection using its MongoDB _id
   const activeCollection = collections.find(
-    (collection) => collection.id === activeCollectionId
+    (collection) =>
+      collection._id === activeCollectionId
   )
 
-  // Load collections when the application first opens
+  // Load collections from Express/MongoDB when the app starts
   useEffect(() => {
     async function loadCollections() {
       try {
@@ -83,9 +84,9 @@ function App() {
     }
   }
 
-  // Save a Pixabay image into one of our collections
+  // Save a Pixabay image into a collection
   const handleSaveImage = async (
-    collectionId: number
+    collectionId: string
   ) => {
     if (!selectedImage) {
       return
@@ -103,10 +104,10 @@ function App() {
         }
       )
 
-      // Update React state after the backend succeeds
+      // Immediately update React state after MongoDB succeeds
       setCollections((current) =>
         current.map((collection) =>
-          collection.id === collectionId
+          collection._id === collectionId
             ? {
                 ...collection,
                 images: [
@@ -128,10 +129,10 @@ function App() {
     }
   }
 
-  // Delete a saved image
+  // Delete an image from a collection
   const handleDeleteImage = async (
-    collectionId: number,
-    imageId: number
+    collectionId: string,
+    imageId: string
   ) => {
     try {
       await deleteSavedImage(
@@ -139,15 +140,15 @@ function App() {
         imageId
       )
 
-      // Remove the deleted image from React state
+      // Immediately remove the deleted image from React state
       setCollections((current) =>
         current.map((collection) =>
-          collection.id === collectionId
+          collection._id === collectionId
             ? {
                 ...collection,
                 images: collection.images.filter(
                   (image) =>
-                    image.id !== imageId
+                    image._id !== imageId
                 )
               }
             : collection
@@ -163,28 +164,30 @@ function App() {
 
   // Edit a saved image
   const handleUpdateImage = async (
-    collectionId: number,
-    imageId: number,
+    collectionId: string,
+    imageId: string,
     tags: string
-  ) => {
+  ): Promise<void> => {
     try {
-      const updatedImage =
-        await updateSavedImage(
-          collectionId,
-          imageId,
-          tags
-        )
+      const updatedImage = await updateSavedImage(
+        collectionId,
+        imageId,
+        tags
+      )
 
-      // Replace the old image with the updated one
+      // Immediately update the edited image in React state
       setCollections((current) =>
         current.map((collection) =>
-          collection.id === collectionId
+          collection._id === collectionId
             ? {
                 ...collection,
                 images: collection.images.map(
                   (image) =>
-                    image.id === imageId
-                      ? updatedImage
+                    image._id === imageId
+                      ? {
+                          ...image,
+                          ...updatedImage
+                        }
                       : image
                 )
               }
@@ -196,6 +199,8 @@ function App() {
         'Failed to update image:',
         error
       )
+
+      throw error
     }
   }
 
@@ -249,13 +254,14 @@ function App() {
                 !error &&
                 images.length === 0 && (
                   <p className="placeholder">
-                    Search for something to
-                    start discovering images.
+                    Search for something to start
+                    discovering images.
                   </p>
                 )}
 
               {!loading &&
-                !error && (
+                !error &&
+                images.length > 0 && (
                   <ImageGrid
                     images={images}
                     onSave={setSelectedImage}
@@ -265,6 +271,7 @@ function App() {
 
             <Collections
               collections={collections}
+
               onCollectionCreated={(
                 collection
               ) =>
@@ -275,11 +282,12 @@ function App() {
                   ]
                 )
               }
+
               onCollectionSelect={(
                 collection
               ) =>
                 setActiveCollectionId(
-                  collection.id
+                  collection._id
                 )
               }
             />

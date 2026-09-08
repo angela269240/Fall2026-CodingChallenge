@@ -68,7 +68,7 @@ function Collections({
         {collections.map((collection) => (
           <article
             className="collection-card"
-            key={collection.id}
+            key={collection._id}
             onClick={() => onCollectionSelect(collection)}
           >
             <h3>{collection.name}</h3>

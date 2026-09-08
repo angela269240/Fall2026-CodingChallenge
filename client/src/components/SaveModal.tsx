@@ -2,7 +2,7 @@ import type { Collection } from '../services/api'
 
 type SaveModalProps = {
   collections: Collection[]
-  onSelect: (collectionId: number) => void
+  onSelect: (collectionId: string) => void
   onClose: () => void
 }
 
@@ -33,8 +33,8 @@ function SaveModal({
           <div className="collection-options">
             {collections.map((collection) => (
               <button
-                key={collection.id}
-                onClick={() => onSelect(collection.id)}
+                key={collection._id}
+                onClick={() => onSelect(collection._id)}
               >
                 <span>{collection.name}</span>
 
