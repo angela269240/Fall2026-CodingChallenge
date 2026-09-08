@@ -1,0 +1,21 @@
+import ImageCard from './ImageCard'
+import type { PixabayImage } from '../services/pixabay'
+
+type ImageGridProps = {
+  images: PixabayImage[]
+}
+
+function ImageGrid({ images }: ImageGridProps) {
+  return (
+    <div className="image-grid">
+      {images.map((image) => (
+        <ImageCard
+          key={image.id}
+          image={image}
+        />
+      ))}
+    </div>
+  )
+}
+
+export default ImageGrid
