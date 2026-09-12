@@ -48,19 +48,26 @@ Prerequisites:
    cd client
    npm install
 
-3. Create a file named .env inside the client directory and add:
+3. Create the frontend environment file:
 
-   VITE_PIXABAY_API_KEY=your_pixabay_api_key
+   cd client
+   cp .env.example .env
+
+   Then replace the placeholder value in .env with your
+   Pixabay API key.
 
 4. Return to the project root and install backend dependencies:
 
    cd ../server
    npm install
 
-5. Create a file named .env inside the server directory and add:
+5. Create the backend environment file:
 
-   MONGODB_URI=your_mongodb_connection_string
-   PIXABAY_API_KEY=your_pixabay_api_key
+   cd server
+   cp .env.example .env
+
+   Then replace the placeholder values with your MongoDB
+   connection string and Pixabay API key.
 
 6. Start the backend server from the server directory:
 
