@@ -1,30 +1,70 @@
 import { useState } from 'react'
+import { Search } from 'lucide-react'
 
 type SearchBarProps = {
-  onSearch: (query: string) => void
+  onSearch: (
+    query: string
+  ) => void
+
+  loading?: boolean
 }
 
-function SearchBar({ onSearch }: SearchBarProps) {
-  const [query, setQuery] = useState('')
+function SearchBar({
+  onSearch,
+  loading = false
+}: SearchBarProps) {
+  const [query, setQuery] =
+    useState('')
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = (
+    event: React.FormEvent
+  ) => {
     event.preventDefault()
 
-    if (query.trim()) {
-      onSearch(query)
+    const trimmedQuery =
+      query.trim()
+
+    if (
+      !trimmedQuery ||
+      loading
+    ) {
+      return
     }
+
+    onSearch(trimmedQuery)
   }
 
   return (
-    <form className="search-bar" onSubmit={handleSubmit}>
-      <input
-        type="text"
-        placeholder="Search for images..."
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
+    <form
+      className="search-bar"
+      onSubmit={handleSubmit}
+    >
+      <Search
+        className="search-icon"
+        size={20}
+        aria-hidden="true"
       />
 
-      <button type="submit">Search</button>
+      <input
+        type="text"
+        placeholder="Search photos, places, ideas..."
+        value={query}
+        onChange={(event) =>
+          setQuery(
+            event.target.value
+          )
+        }
+        aria-label="Search images"
+      />
+
+      <button
+        type="submit"
+        disabled={loading}
+      >
+        {loading
+          ? 'Searching...'
+          : 'Search'}
+      </button>
     </form>
   )
 }

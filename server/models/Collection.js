@@ -35,6 +35,18 @@ const collectionSchema = new mongoose.Schema(
       trim: true
     },
 
+    isShared: {
+      type: Boolean,
+      default: false
+    },
+
+    shareId: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true
+    },
+
     images: {
       type: [imageSchema],
       default: []

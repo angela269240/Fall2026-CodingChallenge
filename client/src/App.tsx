@@ -7,6 +7,9 @@ import ImageGrid from './components/ImageGrid'
 import Collections from './components/Collections'
 import SaveModal from './components/SaveModal'
 import CollectionDetail from './components/CollectionDetail'
+import SharedCollection from './components/SharedCollection'
+import Toast from './components/Toast'
+import LoadingState from './components/LoadingState'
 
 import {
   searchImages,
@@ -14,44 +17,85 @@ import {
 } from './services/pixabay'
 
 import {
+  deleteCollection,
   deleteSavedImage,
   getCollections,
+  getSharedCollection,
   saveImageToCollection,
+  shareCollection,
   updateSavedImage,
   type Collection
 } from './services/api'
 
 function App() {
-  // Images returned by Pixabay
-  const [images, setImages] = useState<PixabayImage[]>([])
+  // Pixabay search results
+  const [images, setImages] =
+    useState<PixabayImage[]>([])
 
   // Search state
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading] =
+    useState(false)
 
-  // Collections loaded from MongoDB through our Express API
+  const [error, setError] =
+    useState('')
+
+  // Collections loaded from MongoDB
   const [collections, setCollections] =
     useState<Collection[]>([])
 
-  // Pixabay image currently selected for saving
+  // Image currently selected for saving
   const [selectedImage, setSelectedImage] =
     useState<PixabayImage | null>(null)
 
-  // MongoDB _id of the collection currently being viewed
+  // Collection currently being viewed
   const [activeCollectionId, setActiveCollectionId] =
     useState<string | null>(null)
 
-  // Find the active collection using its MongoDB _id
+  // Shared collection state
+  const [sharedCollection, setSharedCollection] =
+    useState<Collection | null>(null)
+
+  const [sharedLoading, setSharedLoading] =
+    useState(false)
+
+  const [sharedError, setSharedError] =
+    useState('')
+
+  // Toast notification
+  const [toastMessage, setToastMessage] =
+    useState('')
+
+  // Determine whether this is a shared collection URL
+  const isSharedPage =
+    window.location.pathname.startsWith('/share/')
+
+  // Find the collection currently being viewed
   const activeCollection = collections.find(
     (collection) =>
       collection._id === activeCollectionId
   )
 
-  // Load collections from Express/MongoDB when the app starts
+  // Helper for displaying temporary toast messages
+  const showToast = (message: string) => {
+    setToastMessage(message)
+
+    window.setTimeout(() => {
+      setToastMessage('')
+    }, 3000)
+  }
+
+  // Load the owner's collections
   useEffect(() => {
+    if (
+      window.location.pathname.startsWith('/share/')
+    ) {
+      return
+    }
+
     async function loadCollections() {
       try {
         const data = await getCollections()
+
         setCollections(data)
       } catch (error) {
         console.error(
@@ -64,13 +108,63 @@ function App() {
     loadCollections()
   }, [])
 
+  // Load a read-only shared collection
+  useEffect(() => {
+    const path = window.location.pathname
+
+    if (!path.startsWith('/share/')) {
+      return
+    }
+
+    const shareId =
+      path.split('/share/')[1]
+
+    async function loadSharedCollection() {
+      if (!shareId) {
+        setSharedError(
+          'Invalid share link.'
+        )
+
+        return
+      }
+
+      try {
+        setSharedLoading(true)
+        setSharedError('')
+
+        const data =
+          await getSharedCollection(
+            shareId
+          )
+
+        setSharedCollection(data)
+      } catch (error) {
+        console.error(
+          'Failed to load shared collection:',
+          error
+        ) 
+
+        setSharedError(
+          'This shared collection could not be found.'
+        )
+      } finally {
+        setSharedLoading(false)
+      }
+    }
+
+    loadSharedCollection()
+  }, [])
+
   // Search Pixabay
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (
+    query: string
+  ) => {
     try {
       setLoading(true)
       setError('')
 
-      const results = await searchImages(query)
+      const results =
+        await searchImages(query)
 
       setImages(results)
     } catch (error) {
@@ -84,7 +178,7 @@ function App() {
     }
   }
 
-  // Save a Pixabay image into a collection
+  // Save an image to a collection
   const handleSaveImage = async (
     collectionId: string
   ) => {
@@ -93,23 +187,33 @@ function App() {
     }
 
     try {
-      const savedImage = await saveImageToCollection(
-        collectionId,
-        {
-          pixabayId: selectedImage.id,
-          imageUrl: selectedImage.webformatURL,
-          largeImageUrl: selectedImage.largeImageURL,
-          tags: selectedImage.tags,
-          user: selectedImage.user
-        }
-      )
+      const savedImage =
+        await saveImageToCollection(
+          collectionId,
+          {
+            pixabayId:
+              selectedImage.id,
 
-      // Immediately update React state after MongoDB succeeds
+            imageUrl:
+              selectedImage.webformatURL,
+
+            largeImageUrl:
+              selectedImage.largeImageURL,
+
+            tags:
+              selectedImage.tags,
+
+            user:
+              selectedImage.user
+          }
+        )
+
       setCollections((current) =>
         current.map((collection) =>
           collection._id === collectionId
             ? {
                 ...collection,
+
                 images: [
                   ...collection.images,
                   savedImage
@@ -119,8 +223,11 @@ function App() {
         )
       )
 
-      // Close the save modal
       setSelectedImage(null)
+
+      showToast(
+        'Image saved to collection!'
+      )
     } catch (error) {
       console.error(
         'Failed to save image:',
@@ -140,20 +247,23 @@ function App() {
         imageId
       )
 
-      // Immediately remove the deleted image from React state
       setCollections((current) =>
         current.map((collection) =>
           collection._id === collectionId
             ? {
                 ...collection,
-                images: collection.images.filter(
-                  (image) =>
-                    image._id !== imageId
-                )
+
+                images:
+                  collection.images.filter(
+                    (image) =>
+                      image._id !== imageId
+                  )
               }
             : collection
         )
       )
+
+      showToast('Image deleted.')
     } catch (error) {
       console.error(
         'Failed to delete image:',
@@ -169,34 +279,110 @@ function App() {
     tags: string
   ): Promise<void> => {
     try {
-      const updatedImage = await updateSavedImage(
-        collectionId,
-        imageId,
-        tags
-      )
+      const updatedImage =
+        await updateSavedImage(
+          collectionId,
+          imageId,
+          tags
+        )
 
-      // Immediately update the edited image in React state
       setCollections((current) =>
         current.map((collection) =>
           collection._id === collectionId
             ? {
                 ...collection,
-                images: collection.images.map(
-                  (image) =>
-                    image._id === imageId
-                      ? {
-                          ...image,
-                          ...updatedImage
-                        }
-                      : image
-                )
+
+                images:
+                  collection.images.map(
+                    (image) =>
+                      image._id === imageId
+                        ? {
+                            ...image,
+                            ...updatedImage
+                          }
+                        : image
+                  )
               }
             : collection
         )
       )
+
+      showToast('Changes saved.')
     } catch (error) {
       console.error(
         'Failed to update image:',
+        error
+      )
+
+      throw error
+    }
+  }
+
+  // Generate and copy a shareable collection URL
+  const handleShareCollection = async (
+    collectionId: string
+  ): Promise<void> => {
+    try {
+      const { shareId } =
+        await shareCollection(
+          collectionId
+        )
+
+      const shareUrl =
+        `${window.location.origin}/share/${shareId}`
+
+      await navigator.clipboard.writeText(
+        shareUrl
+      )
+
+      setCollections((current) =>
+        current.map((collection) =>
+          collection._id === collectionId
+            ? {
+                ...collection,
+                isShared: true,
+                shareId
+              }
+            : collection
+        )
+      )
+
+      showToast(
+        'Share link copied to clipboard!'
+      )
+    } catch (error) {
+      console.error(
+        'Failed to share collection:',
+        error
+      )
+    }
+  }
+
+  // Delete an entire collection
+  const handleDeleteCollection = async (
+    collectionId: string
+  ): Promise<void> => {
+    try {
+      await deleteCollection(
+        collectionId
+      )
+
+      setCollections((current) =>
+        current.filter(
+          (collection) =>
+            collection._id !== collectionId
+        )
+      )
+
+      // Return to the main view
+      setActiveCollectionId(null)
+
+      showToast(
+        'Collection deleted.'
+      )
+    } catch (error) {
+      console.error(
+        'Failed to delete collection:',
         error
       )
 
@@ -209,18 +395,58 @@ function App() {
       <Navbar />
 
       <main className="main-content">
-        {activeCollection ? (
-          // COLLECTION DETAIL VIEW
+        {isSharedPage ? (
+          // READ-ONLY SHARED COLLECTION
+          <>
+            {sharedLoading && (
+              <LoadingState
+                message="Loading collection..."
+              />
+            )}
+
+            {sharedError && (
+              <p className="error-message">
+                {sharedError}
+              </p>
+            )}
+
+            {!sharedLoading &&
+              !sharedError &&
+              sharedCollection && (
+                <SharedCollection
+                  collection={
+                    sharedCollection
+                  }
+                />
+              )}
+          </>
+        ) : activeCollection ? (
+          // OWNER COLLECTION DETAIL
           <CollectionDetail
             collection={activeCollection}
+
             onBack={() =>
               setActiveCollectionId(null)
             }
-            onDeleteImage={handleDeleteImage}
-            onUpdateImage={handleUpdateImage}
+
+            onDeleteImage={
+              handleDeleteImage
+            }
+
+            onUpdateImage={
+              handleUpdateImage
+            }
+
+            onShare={
+              handleShareCollection
+            }
+
+            onDeleteCollection={
+              handleDeleteCollection
+            }
           />
         ) : (
-          // DISCOVER + COLLECTIONS VIEW
+          // DISCOVER + COLLECTIONS
           <>
             <section className="hero">
               <h1>
@@ -228,12 +454,14 @@ function App() {
               </h1>
 
               <p>
-                Search for images and save your
-                favorites into collections.
+                Search for images and save
+                your favorites into
+                collections.
               </p>
 
               <SearchBar
                 onSearch={handleSearch}
+                loading={loading}
               />
             </section>
 
@@ -241,7 +469,9 @@ function App() {
               <h2>Explore</h2>
 
               {loading && (
-                <p>Loading images...</p>
+                <LoadingState
+                  message="Finding inspiration..."
+                />
               )}
 
               {error && (
@@ -254,8 +484,8 @@ function App() {
                 !error &&
                 images.length === 0 && (
                   <p className="placeholder">
-                    Search for something to start
-                    discovering images.
+                    Search for something to
+                    start discovering images.
                   </p>
                 )}
 
@@ -264,7 +494,9 @@ function App() {
                 images.length > 0 && (
                   <ImageGrid
                     images={images}
-                    onSave={setSelectedImage}
+                    onSave={
+                      setSelectedImage
+                    }
                   />
                 )}
             </section>
@@ -296,13 +528,25 @@ function App() {
       </main>
 
       {/* Save-to-collection modal */}
-      {selectedImage && (
-        <SaveModal
-          collections={collections}
-          onSelect={handleSaveImage}
-          onClose={() =>
-            setSelectedImage(null)
-          }
+      {!isSharedPage &&
+        selectedImage && (
+          <SaveModal
+            collections={collections}
+
+            onSelect={
+              handleSaveImage
+            }
+
+            onClose={() =>
+              setSelectedImage(null)
+            }
+          />
+        )}
+
+      {/* Application toast */}
+      {toastMessage && (
+        <Toast
+          message={toastMessage}
         />
       )}
     </>

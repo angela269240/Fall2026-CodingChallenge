@@ -13,6 +13,8 @@ export type Collection = {
   _id: string
   name: string
   images: SavedImage[]
+  isShared?: boolean
+  shareId?: string | null
 }
 
 export async function getCollections(): Promise<Collection[]> {
@@ -127,6 +129,58 @@ export async function deleteSavedImage(
   if (!response.ok) {
     throw new Error(
       'Failed to delete image'
+    )
+  }
+}
+
+export async function shareCollection(
+  collectionId: string
+): Promise<{ shareId: string }> {
+  const response = await fetch(
+    `${API_URL}/collections/${collectionId}/share`,
+    {
+      method: 'POST'
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Failed to share collection'
+    )
+  }
+
+  return response.json()
+}
+
+export async function getSharedCollection(
+  shareId: string
+): Promise<Collection> {
+  const response = await fetch(
+    `${API_URL}/collections/shared/${shareId}`
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Shared collection not found'
+    )
+  }
+
+  return response.json()
+}
+
+export async function deleteCollection(
+  collectionId: string
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/collections/${collectionId}`,
+    {
+      method: 'DELETE'
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      'Failed to delete collection'
     )
   }
 }

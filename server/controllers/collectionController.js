@@ -1,13 +1,49 @@
 const Collection = require('../models/Collection')
+const { randomUUID } = require('crypto')
+const {
+  getImageById
+} = require('../services/pixabayService')
 
 // Get all collections
 async function getCollections(req, res) {
   try {
-    const collections = await Collection.find().sort({
-      createdAt: -1
-    })
+    const collections =
+      await Collection.find().sort({
+        createdAt: -1
+      })
 
-    res.json(collections)
+    const refreshedCollections =
+      await Promise.all(
+        collections.map(async (collection) => {
+          await Promise.all(
+            collection.images.map(async (image) => {
+              try {
+                const pixabayImage =
+                  await getImageById(
+                    image.pixabayId
+                  )
+
+                if (pixabayImage) {
+                  image.imageUrl =
+                    pixabayImage.webformatURL
+
+                  image.largeImageUrl =
+                    pixabayImage.largeImageURL
+                }
+              } catch (error) {
+                console.error(
+                  `Failed to refresh image ${image.pixabayId}:`,
+                  error.message
+                )
+              }
+            })
+          )
+
+          return collection
+        })
+      )
+
+    res.json(refreshedCollections)
   } catch (error) {
     console.error(error)
 
@@ -175,10 +211,112 @@ async function deleteImage(req, res) {
   }
 }
 
+async function shareCollection(req, res) {
+  try {
+    const collection = await Collection.findById(
+      req.params.id
+    )
+
+    if (!collection) {
+      return res.status(404).json({
+        message: 'Collection not found'
+      })
+    }
+
+    if (!collection.shareId) {
+      collection.shareId = randomUUID()
+    }
+
+    collection.isShared = true
+
+    await collection.save()
+
+    res.json({
+      shareId: collection.shareId
+    })
+  } catch (error) {
+    console.error(error)
+
+    res.status(500).json({
+      message: 'Failed to share collection'
+    })
+  }
+}
+
+async function getSharedCollection(req, res) {
+  try {
+    const collection = await Collection.findOne({
+      shareId: req.params.shareId,
+      isShared: true
+    })
+
+    if (!collection) {
+      return res.status(404).json({
+        message: 'Shared collection not found'
+      })
+    }
+    await Promise.all(
+      collection.images.map(async (image) => {
+        try {
+          const pixabayImage =
+            await getImageById(
+            image.pixabayId
+          )
+
+          if (pixabayImage) {
+            image.imageUrl =
+              pixabayImage.webformatURL
+
+            image.largeImageUrl =
+              pixabayImage.largeImageURL
+          }
+        } catch (error) {
+          console.error(
+            `Failed to refresh image ${image.pixabayId}:`,
+            error.message
+          )
+        }
+      })
+    )
+    res.json(collection)
+  } catch (error) {
+    console.error(error)
+
+    res.status(500).json({
+      message: 'Failed to load shared collection'
+    })
+  }
+}
+
+async function deleteCollection(req, res) {
+  try {
+    const collection = await Collection.findByIdAndDelete(
+      req.params.id
+    )
+
+    if (!collection) {
+      return res.status(404).json({
+        message: 'Collection not found'
+      })
+    }
+
+    res.status(204).send()
+  } catch (error) {
+    console.error(error)
+
+    res.status(500).json({
+      message: 'Failed to delete collection'
+    })
+  }
+}
+
 module.exports = {
   getCollections,
   createCollection,
   addImageToCollection,
   updateImage,
-  deleteImage
+  deleteImage,
+  shareCollection,
+  getSharedCollection,
+  deleteCollection
 }

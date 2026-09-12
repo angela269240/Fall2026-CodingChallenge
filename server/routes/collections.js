@@ -5,7 +5,10 @@ const {
   createCollection,
   addImageToCollection,
   updateImage,
-  deleteImage
+  deleteImage,
+  shareCollection,
+  getSharedCollection,
+  deleteCollection
 } = require('../controllers/collectionController')
 
 const router = express.Router()
@@ -22,5 +25,17 @@ router.delete(
   '/:collectionId/images/:imageId',
   deleteImage
 )
+
+router.post(
+  '/:id/share',
+  shareCollection
+)
+
+router.get(
+  '/shared/:shareId',
+  getSharedCollection
+)
+
+router.delete('/:id', deleteCollection)
 
 module.exports = router

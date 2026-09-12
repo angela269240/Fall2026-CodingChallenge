@@ -1,3 +1,5 @@
+import { Bookmark } from 'lucide-react'
+
 import type { PixabayImage } from '../services/pixabay'
 
 type ImageCardProps = {
@@ -5,19 +7,38 @@ type ImageCardProps = {
   onSave: (image: PixabayImage) => void
 }
 
-function ImageCard({image,onSave}: ImageCardProps) {
+function ImageCard({
+  image,
+  onSave
+}: ImageCardProps) {
+  const handleSave = () => {
+    onSave(image)
+  }
+
   return (
     <article className="image-card">
-      <img
-        src={image.webformatURL}
-        alt={image.tags}
-      />
+      <div className="image-wrapper">
+        <img
+          src={image.webformatURL}
+          alt={image.tags}
+          loading="lazy"
+        />
 
-      <div className="image-info">
+        <div className="image-overlay">
+          <button
+            type="button"
+            className="save-image-button"
+            onClick={handleSave}
+          >
+            <Bookmark size={17} />
+            Save
+          </button>
+        </div>
+      </div>
+
+      <div className="image-meta">
         <p>{image.tags}</p>
         <span>by {image.user}</span>
-
-        <button onClick={() => onSave(image)}>Save</button>
       </div>
     </article>
   )
